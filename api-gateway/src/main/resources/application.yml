@@ -44,6 +44,10 @@ spring:
               uri: lb://categorias
               predicates:
                 - Path=/api/categorias/**
+            - id: ruta-restaurantes
+              uri: lb://RESTAURANTE
+              predicates:
+                - Path=/api/restaurantes/**
 eureka:
   client:
     service-url:
