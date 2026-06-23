@@ -32,6 +32,10 @@ spring:
               uri: lb://RESENIAS
               predicates:
                 - Path=/api/resenias/**
+            - id: ruta-pedidos
+              uri: lb://PEDIDOS
+              predicates:
+                - Path=/api/pedidos/**
 eureka:
   client:
     service-url:
