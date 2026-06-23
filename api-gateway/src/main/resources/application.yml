@@ -36,6 +36,14 @@ spring:
               uri: lb://PEDIDOS
               predicates:
                 - Path=/api/pedidos/**
+            - id: ruta-carrito
+              uri: lb://CARRITO
+              predicates:
+                - Path=/api/carrito/**
+            - id: ruta-categorias
+              uri: lb://categorias
+              predicates:
+                - Path=/api/categorias/**
 eureka:
   client:
     service-url:
