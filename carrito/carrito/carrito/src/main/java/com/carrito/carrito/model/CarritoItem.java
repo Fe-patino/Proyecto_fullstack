@@ -2,9 +2,9 @@ package com.carrito.carrito.model;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
-import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
 import java.time.LocalDateTime;
 
 @Entity
@@ -52,16 +52,25 @@ public class CarritoItem {
     private String estado = "ACTIVO";
 
     @Column(nullable = false, updatable = false)
-    private LocalDateTime fechaAgregado = LocalDateTime.now();
+    private LocalDateTime fechaAgregado;
 
     @Column(nullable = false)
-    private LocalDateTime fechaActualizacion = LocalDateTime.now();
+    private LocalDateTime fechaActualizacion;
 
     @Transient
     public Double getSubtotal() {
-        if (cantidad != null && precioUnitario != null) {
-            return cantidad * precioUnitario;
-        }
-        return 0.0;
+        return (cantidad != null && precioUnitario != null) ? cantidad * precioUnitario : 0.0;
+    }
+
+    // Métodos de ciclo de vida automáticos para las fechas
+    @PrePersist
+    protected void onCreate() {
+        this.fechaAgregado = LocalDateTime.now();
+        this.fechaActualizacion = LocalDateTime.now();
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        this.fechaActualizacion = LocalDateTime.now();
     }
 }
