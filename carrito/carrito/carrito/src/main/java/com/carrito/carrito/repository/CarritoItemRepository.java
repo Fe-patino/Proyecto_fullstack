@@ -22,7 +22,8 @@ public interface CarritoItemRepository extends JpaRepository<CarritoItem, Intege
     List<CarritoItem> findByUsuarioIdAndRestauranteIdAndEstado(
             Integer usuarioId, Integer restauranteId, String estado);
 
-    @Query("SELECT SUM(c.cantidad * c.precioUnitario) FROM CarritoItem c " +
+    // Corrección con COALESCE para evitar que retorne null si el carrito está vacío
+    @Query("SELECT COALESCE(SUM(c.cantidad * c.precioUnitario), 0.0) FROM CarritoItem c " +
            "WHERE c.usuarioId = :usuarioId AND c.estado = 'ACTIVO'")
     Double calcularTotalCarrito(@Param("usuarioId") Integer usuarioId);
 
