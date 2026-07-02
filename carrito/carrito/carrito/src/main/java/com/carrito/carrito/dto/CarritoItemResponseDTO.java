@@ -11,6 +11,6 @@ public record CarritoItemResponseDTO(
     Double precioUnitario,
     Double subtotal,
     String estado,
-    String fechaAgregado,
-    String fechaActualizacion
+    LocalDateTime fechaAgregado,
+    LocalDateTime fechaActualizacion
 ) {}
