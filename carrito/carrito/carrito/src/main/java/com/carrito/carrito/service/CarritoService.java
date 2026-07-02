@@ -1,7 +1,5 @@
 package com.carrito.carrito.service;
 
-import org.springframework.web.client.RestTemplate;
-import org.springframework.beans.factory.annotation.Autowired;
 import com.carrito.carrito.dto.CarritoItemRequestDTO;
 import com.carrito.carrito.dto.CarritoItemResponseDTO;
 import com.carrito.carrito.dto.CarritoResumenDTO;
@@ -9,8 +7,8 @@ import com.carrito.carrito.model.CarritoItem;
 import com.carrito.carrito.repository.CarritoItemRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -20,7 +18,6 @@ import java.util.stream.Collectors;
 public class CarritoService {
 
     private final CarritoItemRepository repository;
-    
     private final RestTemplate restTemplate;
 
     private CarritoItemResponseDTO mapearAResponse(CarritoItem item) {
@@ -41,24 +38,25 @@ public class CarritoService {
     }
 
     public CarritoItemResponseDTO agregarItem(CarritoItemRequestDTO dto) {
+        // Corrección: Usamos el nombre del servicio en Eureka en lugar de localhost:8080
         try {
-        restTemplate.getForObject(
-            "http://localhost:8080/api/v1/usuarios/" + dto.usuarioId(),
-            Object.class
-        );
-    } catch (Exception e) {
-        throw new RuntimeException("El usuario con id " + dto.usuarioId() + " no existe");
-    }
+            restTemplate.getForObject(
+                "http://ms-usuarios/api/v1/usuarios/" + dto.usuarioId(),
+                Object.class
+            );
+        } catch (Exception e) {
+            throw new RuntimeException("El usuario con id " + dto.usuarioId() + " no existe o el servicio no está disponible");
+        }
 
-    // Verifica que el restaurante existe en ms-restaurante (puerto 8086)
-    try {
-        restTemplate.getForObject(
-            "http://localhost:8086/api/restaurantes/" + dto.restauranteId(),
-            Object.class
-        );
-    } catch (Exception e) {
-        throw new RuntimeException("El restaurante con id " + dto.restauranteId() + " no existe");
-    }
+        // Corrección: Usamos el nombre del servicio en Eureka en lugar de localhost:8086
+        try {
+            restTemplate.getForObject(
+                "http://ms-restaurantes/api/restaurantes/" + dto.restauranteId(),
+                Object.class
+            );
+        } catch (Exception e) {
+            throw new RuntimeException("El restaurante con id " + dto.restauranteId() + " no existe o el servicio no está disponible");
+        }
 
         Optional<CarritoItem> itemExistente = repository
                 .findByUsuarioIdAndSkuProductoAndEstado(dto.usuarioId(), dto.skuProducto(), "ACTIVO");
@@ -66,7 +64,7 @@ public class CarritoService {
         if (itemExistente.isPresent()) {
             CarritoItem item = itemExistente.get();
             item.setCantidad(item.getCantidad() + dto.cantidad());
-            item.setFechaActualizacion(LocalDateTime.now());
+            // Eliminado setFechaActualizacion manual (lo maneja @PreUpdate de JPA)
             return mapearAResponse(repository.save(item));
         }
 
@@ -90,14 +88,14 @@ public class CarritoService {
                 .collect(Collectors.toList());
 
         Double total = repository.calcularTotalCarrito(usuarioId);
-        if (total == null) total = 0.0;
+        // Gracias al COALESCE en el repository, total nunca será null, pero mantenemos el fallback por seguridad.
+        if (total == null) total = 0.0; 
 
         return new CarritoResumenDTO(usuarioId, items, items.size(), total);
     }
 
     public Optional<CarritoItemResponseDTO> obtenerItemPorId(Integer id) {
-        return repository.findById(id)
-                .map(this::mapearAResponse);
+        return repository.findById(id).map(this::mapearAResponse);
     }
 
     public Optional<CarritoItemResponseDTO> actualizarCantidad(Integer id, Integer nuevaCantidad) {
@@ -105,10 +103,8 @@ public class CarritoService {
                 .map(item -> {
                     if (nuevaCantidad <= 0) {
                         item.setEstado("ELIMINADO");
-                        item.setFechaActualizacion(LocalDateTime.now());
                     } else {
                         item.setCantidad(nuevaCantidad);
-                        item.setFechaActualizacion(LocalDateTime.now());
                     }
                     return repository.save(item);
                 })
@@ -119,7 +115,6 @@ public class CarritoService {
         return repository.findById(id)
                 .map(item -> {
                     item.setEstado("ELIMINADO");
-                    item.setFechaActualizacion(LocalDateTime.now());
                     repository.save(item);
                     return true;
                 })
@@ -128,10 +123,7 @@ public class CarritoService {
 
     public void vaciarCarrito(Integer usuarioId) {
         List<CarritoItem> itemsActivos = repository.findByUsuarioIdAndEstado(usuarioId, "ACTIVO");
-        itemsActivos.forEach(item -> {
-            item.setEstado("ELIMINADO");
-            item.setFechaActualizacion(LocalDateTime.now());
-        });
+        itemsActivos.forEach(item -> item.setEstado("ELIMINADO"));
         repository.saveAll(itemsActivos);
     }
 
@@ -140,10 +132,7 @@ public class CarritoService {
         if (itemsActivos.isEmpty()) {
             return false;
         }
-        itemsActivos.forEach(item -> {
-            item.setEstado("CONFIRMADO");
-            item.setFechaActualizacion(LocalDateTime.now());
-        });
+        itemsActivos.forEach(item -> item.setEstado("CONFIRMADO"));
         repository.saveAll(itemsActivos);
         return true;
     }
