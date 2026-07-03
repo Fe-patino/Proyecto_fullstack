@@ -1,5 +1,6 @@
 package resenas.resenas.controller;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -17,6 +18,7 @@ import org.springframework.http.HttpStatus;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import resenas.resenas.dto.ErrorDTO;
 import resenas.resenas.dto.ReseniaDetalleDTO;
 import resenas.resenas.dto.ReseniaListadoDTO;
 import resenas.resenas.dto.ReseniaResumenDTO;
@@ -29,7 +31,7 @@ public class ReseniaController {
 
     private final ReseniaService service;
 
-    // POST: crear reseña (verifica pedido ENTREGADO en ms-pedidos)
+    // POST: crear reseña
     @Operation(
             summary = "Crear resenia",
             description = "Registra una resenia para un pedido, validando en ms-pedidos que el pedido " +
@@ -40,10 +42,14 @@ public class ReseniaController {
             @ApiResponse(responseCode = "400", description = "El pedido no fue entregado, ya tiene una resenia o los datos son invalidos")
     })
     @PostMapping
-    public ResponseEntity<ReseniaDetalleDTO> crear(@Valid @RequestBody ReseniaListadoDTO dto) {
+    public ResponseEntity<?> crear(@Valid @RequestBody ReseniaListadoDTO dto) {
         return service.crearResenia(dto)
-                .map(r -> new ResponseEntity<>(r, HttpStatus.CREATED))
-                .orElse(ResponseEntity.badRequest().build());
+                .<ResponseEntity<?>>map(r -> new ResponseEntity<>(r, HttpStatus.CREATED))
+                .orElse(ResponseEntity.status(400).body(
+                    new ErrorDTO(LocalDateTime.now(), 400,
+                        "No se pudo crear la resenia. El pedido no fue entregado o ya tiene una resenia",
+                        null, "/api/resenias")
+                ));
     }
 
     // GET: listar todas
@@ -52,11 +58,20 @@ public class ReseniaController {
             description = "Obtiene todas las resenias registradas en el sistema"
     )
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Lista obtenida correctamente")
+            @ApiResponse(responseCode = "200", description = "Lista obtenida correctamente"),
+            @ApiResponse(responseCode = "404", description = "No hay resenias registradas")
     })
     @GetMapping
-    public ResponseEntity<List<ReseniaDetalleDTO>> listar() {
-        return ResponseEntity.ok(service.obtenerTodas());
+    public ResponseEntity<?> listar() {
+        List<ReseniaDetalleDTO> lista = service.obtenerTodas();
+        if (lista.isEmpty()) {
+            return ResponseEntity.status(404).body(
+                new ErrorDTO(LocalDateTime.now(), 404,
+                    "No hay resenias registradas en el sistema",
+                    null, "/api/resenias")
+            );
+        }
+        return ResponseEntity.ok(lista);
     }
 
     // GET: buscar por id
@@ -69,10 +84,14 @@ public class ReseniaController {
             @ApiResponse(responseCode = "404", description = "Resenia no encontrada")
     })
     @GetMapping("/{id}")
-    public ResponseEntity<ReseniaDetalleDTO> obtenerUno(@PathVariable Integer id) {
+    public ResponseEntity<?> obtenerUno(@PathVariable Integer id) {
         return service.obtenerPorId(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+                .<ResponseEntity<?>>map(ResponseEntity::ok)
+                .orElse(ResponseEntity.status(404).body(
+                    new ErrorDTO(LocalDateTime.now(), 404,
+                        "Resenia no encontrada con id: " + id,
+                        null, "/api/resenias/" + id)
+                ));
     }
 
     // GET: buscar por pedido
@@ -85,10 +104,14 @@ public class ReseniaController {
             @ApiResponse(responseCode = "404", description = "No existe una resenia para ese pedido")
     })
     @GetMapping("/pedido/{pedidoId}")
-    public ResponseEntity<ReseniaDetalleDTO> obtenerPorPedido(@PathVariable Integer pedidoId) {
+    public ResponseEntity<?> obtenerPorPedido(@PathVariable Integer pedidoId) {
         return service.obtenerPorPedido(pedidoId)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+                .<ResponseEntity<?>>map(ResponseEntity::ok)
+                .orElse(ResponseEntity.status(404).body(
+                    new ErrorDTO(LocalDateTime.now(), 404,
+                        "No existe una resenia para el pedido con id: " + pedidoId,
+                        null, "/api/resenias/pedido/" + pedidoId)
+                ));
     }
 
     // GET: reseñas de un usuario
@@ -97,11 +120,20 @@ public class ReseniaController {
             description = "Obtiene todas las resenias creadas por un usuario especifico"
     )
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Lista obtenida correctamente")
+            @ApiResponse(responseCode = "200", description = "Lista obtenida correctamente"),
+            @ApiResponse(responseCode = "404", description = "No se encontraron resenias para ese usuario")
     })
     @GetMapping("/usuario/{usuarioId}")
-    public ResponseEntity<List<ReseniaDetalleDTO>> obtenerPorUsuario(@PathVariable Integer usuarioId) {
-        return ResponseEntity.ok(service.obtenerPorUsuario(usuarioId));
+    public ResponseEntity<?> obtenerPorUsuario(@PathVariable Integer usuarioId) {
+        List<ReseniaDetalleDTO> lista = service.obtenerPorUsuario(usuarioId);
+        if (lista.isEmpty()) {
+            return ResponseEntity.status(404).body(
+                new ErrorDTO(LocalDateTime.now(), 404,
+                    "No se encontraron resenias para el usuario con id: " + usuarioId,
+                    null, "/api/resenias/usuario/" + usuarioId)
+            );
+        }
+        return ResponseEntity.ok(lista);
     }
 
     // GET: reseñas de un restaurante
@@ -110,11 +142,20 @@ public class ReseniaController {
             description = "Obtiene todas las resenias recibidas por un restaurante especifico"
     )
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Lista obtenida correctamente")
+            @ApiResponse(responseCode = "200", description = "Lista obtenida correctamente"),
+            @ApiResponse(responseCode = "404", description = "No se encontraron resenias para ese restaurante")
     })
     @GetMapping("/restaurante/{restauranteId}")
-    public ResponseEntity<List<ReseniaDetalleDTO>> obtenerPorRestaurante(@PathVariable Integer restauranteId) {
-        return ResponseEntity.ok(service.obtenerPorRestaurante(restauranteId));
+    public ResponseEntity<?> obtenerPorRestaurante(@PathVariable Integer restauranteId) {
+        List<ReseniaDetalleDTO> lista = service.obtenerPorRestaurante(restauranteId);
+        if (lista.isEmpty()) {
+            return ResponseEntity.status(404).body(
+                new ErrorDTO(LocalDateTime.now(), 404,
+                    "No se encontraron resenias para el restaurante con id: " + restauranteId,
+                    null, "/api/resenias/restaurante/" + restauranteId)
+            );
+        }
+        return ResponseEntity.ok(lista);
     }
 
     // GET: resumen puntuaciones de un restaurante
@@ -136,13 +177,22 @@ public class ReseniaController {
             description = "Elimina una resenia del sistema segun su id"
     )
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "204", description = "Resenia eliminada correctamente"),
+            @ApiResponse(responseCode = "200", description = "Resenia eliminada correctamente"),
             @ApiResponse(responseCode = "404", description = "Resenia no encontrada")
     })
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> eliminar(@PathVariable Integer id) {
-        return service.eliminar(id)
-                ? ResponseEntity.noContent().build()
-                : ResponseEntity.notFound().build();
+    public ResponseEntity<?> eliminar(@PathVariable Integer id) {
+        if (service.eliminar(id)) {
+            return ResponseEntity.ok().body(
+                new ErrorDTO(LocalDateTime.now(), 200,
+                    "Resenia eliminada correctamente con id: " + id,
+                    null, "/api/resenias/" + id)
+            );
+        }
+        return ResponseEntity.status(404).body(
+            new ErrorDTO(LocalDateTime.now(), 404,
+                "Resenia no encontrada con id: " + id,
+                null, "/api/resenias/" + id)
+        );
     }
 }
