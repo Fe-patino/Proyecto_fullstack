@@ -1,15 +1,13 @@
 package producto.producto.Controller;
 
-
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import producto.producto.dto.ProductoListadoDTO;
 import producto.producto.dto.ProductoSimpleDTO;
+import producto.producto.dto.ErrorDTO;
 import producto.producto.dto.ProductoDetalleDTO;
 import producto.producto.service.ProductoService;
-
-
 import producto.producto.model.Producto;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +15,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
@@ -25,8 +24,6 @@ import java.util.List;
 public class ProductoController {
 
     private final ProductoService service;
-
-    // ─── Endpoints con DTO ──────────────────────────────────────────────
 
     // GET: listar todos (listado simplificado)
     @Operation(
@@ -51,13 +48,20 @@ public class ProductoController {
             @ApiResponse(responseCode = "404", description = "Producto no encontrado")
     })
     @GetMapping("/{id}")
-    public ResponseEntity<ProductoDetalleDTO> obtenerUno(@PathVariable Integer id) {
+    public ResponseEntity<?> obtenerUno(@PathVariable Integer id) {
         return service.buscarDetalleDTO(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+                .<ResponseEntity<?>>map(ResponseEntity::ok)
+                .orElse(ResponseEntity.status(404).body(
+                    new ErrorDTO(
+                        LocalDateTime.now(), 404,
+                        "Producto no encontrado con id: " + id,
+                        null,
+                        "/api/productos/" + id
+                    )
+                ));
     }
 
-    // GET: productos simples por restaurante (para que ms-carrito consulte)
+    // GET: productos simples por restaurante
     @Operation(
             summary = "Listar productos simples de un restaurante",
             description = "Obtiene el id y nombre de los productos de un restaurante, pensado para ser consumido por ms-carrito"
@@ -104,7 +108,7 @@ public class ProductoController {
         );
     }
 
-    // GET: buscar por nombre (contiene)
+    // GET: buscar por nombre
     @Operation(
             summary = "Buscar productos por nombre",
             description = "Obtiene los productos cuyo nombre contiene el texto proporcionado"
@@ -138,8 +142,6 @@ public class ProductoController {
         );
     }
 
-    // ─── CRUD ────────────────────────────────────────────────────────────
-
     // POST: crear producto
     @Operation(
             summary = "Crear producto",
@@ -166,12 +168,19 @@ public class ProductoController {
             @ApiResponse(responseCode = "404", description = "Producto no encontrado")
     })
     @PutMapping("/{id}")
-    public ResponseEntity<ProductoDetalleDTO> actualizar(
+    public ResponseEntity<?> actualizar(
             @PathVariable Integer id,
             @Valid @RequestBody Producto producto) {
         return service.actualizar(id, producto)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+                .<ResponseEntity<?>>map(ResponseEntity::ok)
+                .orElse(ResponseEntity.status(404).body(
+                    new ErrorDTO(
+                        LocalDateTime.now(), 404,
+                        "Producto no encontrado con id: " + id,
+                        null,
+                        "/api/productos/" + id
+                    )
+                ));
     }
 
     // PATCH: activar producto
@@ -184,10 +193,17 @@ public class ProductoController {
             @ApiResponse(responseCode = "404", description = "Producto no encontrado")
     })
     @PatchMapping("/{id}/activar")
-    public ResponseEntity<ProductoDetalleDTO> activar(@PathVariable Integer id) {
+    public ResponseEntity<?> activar(@PathVariable Integer id) {
         return service.cambiarDisponibilidad(id, true)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+                .<ResponseEntity<?>>map(ResponseEntity::ok)
+                .orElse(ResponseEntity.status(404).body(
+                    new ErrorDTO(
+                        LocalDateTime.now(), 404,
+                        "Producto no encontrado con id: " + id,
+                        null,
+                        "/api/productos/" + id
+                    )
+                ));
     }
 
     // PATCH: desactivar producto
@@ -200,10 +216,17 @@ public class ProductoController {
             @ApiResponse(responseCode = "404", description = "Producto no encontrado")
     })
     @PatchMapping("/{id}/desactivar")
-    public ResponseEntity<ProductoDetalleDTO> desactivar(@PathVariable Integer id) {
+    public ResponseEntity<?> desactivar(@PathVariable Integer id) {
         return service.cambiarDisponibilidad(id, false)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+                .<ResponseEntity<?>>map(ResponseEntity::ok)
+                .orElse(ResponseEntity.status(404).body(
+                    new ErrorDTO(
+                        LocalDateTime.now(), 404,
+                        "Producto no encontrado con id: " + id,
+                        null,
+                        "/api/productos/" + id
+                    )
+                ));
     }
 
     // DELETE: eliminar producto
@@ -216,9 +239,17 @@ public class ProductoController {
             @ApiResponse(responseCode = "404", description = "Producto no encontrado")
     })
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> eliminar(@PathVariable Integer id) {
-        return service.eliminar(id)
-                ? ResponseEntity.noContent().build()
-                : ResponseEntity.notFound().build();
+    public ResponseEntity<?> eliminar(@PathVariable Integer id) {
+        if (service.eliminar(id)) {
+            return ResponseEntity.noContent().build();
+        }
+        return ResponseEntity.status(404).body(
+            new ErrorDTO(
+                LocalDateTime.now(), 404,
+                "Producto no encontrado con id: " + id,
+                null,
+                "/api/productos/" + id
+            )
+        );
     }
 }
