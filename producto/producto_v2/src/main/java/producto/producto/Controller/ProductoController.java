@@ -31,11 +31,20 @@ public class ProductoController {
             description = "Obtiene el listado simplificado de todos los productos registrados"
     )
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Lista obtenida correctamente")
+            @ApiResponse(responseCode = "200", description = "Lista obtenida correctamente"),
+            @ApiResponse(responseCode = "404", description = "No hay productos registrados")
     })
     @GetMapping
-    public ResponseEntity<List<ProductoListadoDTO>> listar() {
-        return ResponseEntity.ok(service.listarDTO());
+    public ResponseEntity<?> listar() {
+        List<ProductoListadoDTO> lista = service.listarDTO();
+        if (lista.isEmpty()) {
+            return ResponseEntity.status(404).body(
+                new ErrorDTO(LocalDateTime.now(), 404,
+                    "No hay productos registrados en el sistema",
+                    null, "/api/productos")
+            );
+        }
+        return ResponseEntity.ok(lista);
     }
 
     // GET: detalle completo por id
@@ -52,12 +61,9 @@ public class ProductoController {
         return service.buscarDetalleDTO(id)
                 .<ResponseEntity<?>>map(ResponseEntity::ok)
                 .orElse(ResponseEntity.status(404).body(
-                    new ErrorDTO(
-                        LocalDateTime.now(), 404,
+                    new ErrorDTO(LocalDateTime.now(), 404,
                         "Producto no encontrado con id: " + id,
-                        null,
-                        "/api/productos/" + id
-                    )
+                        null, "/api/productos/" + id)
                 ));
     }
 
@@ -67,11 +73,20 @@ public class ProductoController {
             description = "Obtiene el id y nombre de los productos de un restaurante, pensado para ser consumido por ms-carrito"
     )
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Lista obtenida correctamente")
+            @ApiResponse(responseCode = "200", description = "Lista obtenida correctamente"),
+            @ApiResponse(responseCode = "404", description = "No se encontraron productos para ese restaurante")
     })
     @GetMapping("/restaurante/{idRestauranteRef}/simples")
-    public ResponseEntity<List<ProductoSimpleDTO>> simplesPorRestaurante(@PathVariable Integer idRestauranteRef) {
-        return ResponseEntity.ok(service.buscarSimplesPorRestaurante(idRestauranteRef));
+    public ResponseEntity<?> simplesPorRestaurante(@PathVariable Integer idRestauranteRef) {
+        List<ProductoSimpleDTO> lista = service.buscarSimplesPorRestaurante(idRestauranteRef);
+        if (lista.isEmpty()) {
+            return ResponseEntity.status(404).body(
+                new ErrorDTO(LocalDateTime.now(), 404,
+                    "No se encontraron productos para el restaurante con id: " + idRestauranteRef,
+                    null, "/api/productos/restaurante/" + idRestauranteRef + "/simples")
+            );
+        }
+        return ResponseEntity.ok(lista);
     }
 
     // GET: todos los productos de un restaurante
@@ -80,15 +95,22 @@ public class ProductoController {
             description = "Obtiene todos los productos asociados a un restaurante especifico"
     )
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Lista obtenida correctamente")
+            @ApiResponse(responseCode = "200", description = "Lista obtenida correctamente"),
+            @ApiResponse(responseCode = "404", description = "No se encontraron productos para ese restaurante")
     })
     @GetMapping("/restaurante/{idRestauranteRef}")
-    public ResponseEntity<List<ProductoListadoDTO>> porRestaurante(@PathVariable Integer idRestauranteRef) {
-        return ResponseEntity.ok(
-                service.buscarPorRestaurante(idRestauranteRef).stream()
-                        .map(p -> new ProductoListadoDTO(p.getId(), p.getNombre(), p.getPrecio(), p.getDisponible()))
-                        .toList()
-        );
+    public ResponseEntity<?> porRestaurante(@PathVariable Integer idRestauranteRef) {
+        List<ProductoListadoDTO> lista = service.buscarPorRestaurante(idRestauranteRef).stream()
+                .map(p -> new ProductoListadoDTO(p.getId(), p.getNombre(), p.getPrecio(), p.getDisponible()))
+                .toList();
+        if (lista.isEmpty()) {
+            return ResponseEntity.status(404).body(
+                new ErrorDTO(LocalDateTime.now(), 404,
+                    "No se encontraron productos para el restaurante con id: " + idRestauranteRef,
+                    null, "/api/productos/restaurante/" + idRestauranteRef)
+            );
+        }
+        return ResponseEntity.ok(lista);
     }
 
     // GET: disponibles de un restaurante
@@ -97,15 +119,22 @@ public class ProductoController {
             description = "Obtiene los productos de un restaurante que se encuentran disponibles para la venta"
     )
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Lista obtenida correctamente")
+            @ApiResponse(responseCode = "200", description = "Lista obtenida correctamente"),
+            @ApiResponse(responseCode = "404", description = "No hay productos disponibles para ese restaurante")
     })
     @GetMapping("/restaurante/{idRestauranteRef}/disponibles")
-    public ResponseEntity<List<ProductoListadoDTO>> disponiblesPorRestaurante(@PathVariable Integer idRestauranteRef) {
-        return ResponseEntity.ok(
-                service.buscarDisponiblesPorRestaurante(idRestauranteRef).stream()
-                        .map(p -> new ProductoListadoDTO(p.getId(), p.getNombre(), p.getPrecio(), p.getDisponible()))
-                        .toList()
-        );
+    public ResponseEntity<?> disponiblesPorRestaurante(@PathVariable Integer idRestauranteRef) {
+        List<ProductoListadoDTO> lista = service.buscarDisponiblesPorRestaurante(idRestauranteRef).stream()
+                .map(p -> new ProductoListadoDTO(p.getId(), p.getNombre(), p.getPrecio(), p.getDisponible()))
+                .toList();
+        if (lista.isEmpty()) {
+            return ResponseEntity.status(404).body(
+                new ErrorDTO(LocalDateTime.now(), 404,
+                    "No hay productos disponibles para el restaurante con id: " + idRestauranteRef,
+                    null, "/api/productos/restaurante/" + idRestauranteRef + "/disponibles")
+            );
+        }
+        return ResponseEntity.ok(lista);
     }
 
     // GET: buscar por nombre
@@ -114,15 +143,22 @@ public class ProductoController {
             description = "Obtiene los productos cuyo nombre contiene el texto proporcionado"
     )
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Lista obtenida correctamente")
+            @ApiResponse(responseCode = "200", description = "Lista obtenida correctamente"),
+            @ApiResponse(responseCode = "404", description = "No se encontraron productos con ese nombre")
     })
     @GetMapping("/buscar/{nombre}")
-    public ResponseEntity<List<ProductoListadoDTO>> buscarPorNombre(@PathVariable String nombre) {
-        return ResponseEntity.ok(
-                service.buscarPorNombreContiene(nombre).stream()
-                        .map(p -> new ProductoListadoDTO(p.getId(), p.getNombre(), p.getPrecio(), p.getDisponible()))
-                        .toList()
-        );
+    public ResponseEntity<?> buscarPorNombre(@PathVariable String nombre) {
+        List<ProductoListadoDTO> lista = service.buscarPorNombreContiene(nombre).stream()
+                .map(p -> new ProductoListadoDTO(p.getId(), p.getNombre(), p.getPrecio(), p.getDisponible()))
+                .toList();
+        if (lista.isEmpty()) {
+            return ResponseEntity.status(404).body(
+                new ErrorDTO(LocalDateTime.now(), 404,
+                    "No se encontraron productos con el nombre: " + nombre,
+                    null, "/api/productos/buscar/" + nombre)
+            );
+        }
+        return ResponseEntity.ok(lista);
     }
 
     // GET: por categoría
@@ -131,15 +167,22 @@ public class ProductoController {
             description = "Obtiene los productos asociados a una categoria especifica"
     )
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Lista obtenida correctamente")
+            @ApiResponse(responseCode = "200", description = "Lista obtenida correctamente"),
+            @ApiResponse(responseCode = "404", description = "No se encontraron productos para esa categoria")
     })
     @GetMapping("/categoria/{idCategoriaRef}")
-    public ResponseEntity<List<ProductoListadoDTO>> porCategoria(@PathVariable Integer idCategoriaRef) {
-        return ResponseEntity.ok(
-                service.buscarPorCategoria(idCategoriaRef).stream()
-                        .map(p -> new ProductoListadoDTO(p.getId(), p.getNombre(), p.getPrecio(), p.getDisponible()))
-                        .toList()
-        );
+    public ResponseEntity<?> porCategoria(@PathVariable Integer idCategoriaRef) {
+        List<ProductoListadoDTO> lista = service.buscarPorCategoria(idCategoriaRef).stream()
+                .map(p -> new ProductoListadoDTO(p.getId(), p.getNombre(), p.getPrecio(), p.getDisponible()))
+                .toList();
+        if (lista.isEmpty()) {
+            return ResponseEntity.status(404).body(
+                new ErrorDTO(LocalDateTime.now(), 404,
+                    "No se encontraron productos para la categoria con id: " + idCategoriaRef,
+                    null, "/api/productos/categoria/" + idCategoriaRef)
+            );
+        }
+        return ResponseEntity.ok(lista);
     }
 
     // POST: crear producto
@@ -174,12 +217,9 @@ public class ProductoController {
         return service.actualizar(id, producto)
                 .<ResponseEntity<?>>map(ResponseEntity::ok)
                 .orElse(ResponseEntity.status(404).body(
-                    new ErrorDTO(
-                        LocalDateTime.now(), 404,
+                    new ErrorDTO(LocalDateTime.now(), 404,
                         "Producto no encontrado con id: " + id,
-                        null,
-                        "/api/productos/" + id
-                    )
+                        null, "/api/productos/" + id)
                 ));
     }
 
@@ -197,12 +237,9 @@ public class ProductoController {
         return service.cambiarDisponibilidad(id, true)
                 .<ResponseEntity<?>>map(ResponseEntity::ok)
                 .orElse(ResponseEntity.status(404).body(
-                    new ErrorDTO(
-                        LocalDateTime.now(), 404,
+                    new ErrorDTO(LocalDateTime.now(), 404,
                         "Producto no encontrado con id: " + id,
-                        null,
-                        "/api/productos/" + id
-                    )
+                        null, "/api/productos/" + id + "/activar")
                 ));
     }
 
@@ -220,12 +257,9 @@ public class ProductoController {
         return service.cambiarDisponibilidad(id, false)
                 .<ResponseEntity<?>>map(ResponseEntity::ok)
                 .orElse(ResponseEntity.status(404).body(
-                    new ErrorDTO(
-                        LocalDateTime.now(), 404,
+                    new ErrorDTO(LocalDateTime.now(), 404,
                         "Producto no encontrado con id: " + id,
-                        null,
-                        "/api/productos/" + id
-                    )
+                        null, "/api/productos/" + id + "/desactivar")
                 ));
     }
 
@@ -235,21 +269,22 @@ public class ProductoController {
             description = "Elimina un producto del catalogo segun su id"
     )
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "204", description = "Producto eliminado correctamente"),
+            @ApiResponse(responseCode = "200", description = "Producto eliminado correctamente"),
             @ApiResponse(responseCode = "404", description = "Producto no encontrado")
     })
     @DeleteMapping("/{id}")
     public ResponseEntity<?> eliminar(@PathVariable Integer id) {
         if (service.eliminar(id)) {
-            return ResponseEntity.noContent().build();
+            return ResponseEntity.ok().body(
+                new ErrorDTO(LocalDateTime.now(), 200,
+                    "Producto eliminado correctamente con id: " + id,
+                    null, "/api/productos/" + id)
+            );
         }
         return ResponseEntity.status(404).body(
-            new ErrorDTO(
-                LocalDateTime.now(), 404,
+            new ErrorDTO(LocalDateTime.now(), 404,
                 "Producto no encontrado con id: " + id,
-                null,
-                "/api/productos/" + id
-            )
+                null, "/api/productos/" + id)
         );
     }
 }
