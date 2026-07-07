@@ -5,8 +5,9 @@ Plataforma de pedidos de comida a domicilio desarrollada con arquitectura de mic
 
 ## Integrantes del equipo
 - Felix Patino
-- [Nombre compañero 2]
-- [Nombre compañero 3]
+- Dylan Riquelme
+- Vicente Bravo
+- Benjamin Hernandez
 
 ## Microservicios implementados
 
