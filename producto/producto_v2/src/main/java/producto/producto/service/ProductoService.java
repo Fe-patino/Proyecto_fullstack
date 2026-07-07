@@ -19,10 +19,7 @@ import java.util.stream.Collectors;
 public class ProductoService {
 
     private final ProductoRepository repository;
-
     private final RestTemplate restTemplate;
-
-    // ─── Métodos con DTO ────────────────────────────────────────────────
 
     public List<ProductoListadoDTO> listarDTO() {
         return repository.findAll().stream()
@@ -42,8 +39,6 @@ public class ProductoService {
                 .map(p -> new ProductoSimpleDTO(p.getId(), p.getNombre()))
                 .collect(Collectors.toList());
     }
-
-    // ─── Búsquedas ──────────────────────────────────────────────────────
 
     public List<Producto> listar() {
         return repository.findAll();
@@ -77,29 +72,27 @@ public class ProductoService {
         return repository.findByIdRestauranteRefAndDisponible(idRestauranteRef, true);
     }
 
-    // ─── CRUD ────────────────────────────────────────────────────────────
-
     public ProductoDetalleDTO guardar(Producto p) {
 
-         // Verifica restaurante en ms-restaurante (8086)
-    try {
-        restTemplate.getForObject(
-            "http://localhost:8086/api/restaurantes/" + p.getIdRestauranteRef(),
-            Object.class
-        );
-    } catch (Exception e) {
-        throw new RuntimeException("El restaurante con id " + p.getIdRestauranteRef() + " no existe");
-    }
+        // Verifica restaurante — usa nombre de Eureka
+        try {
+            restTemplate.getForObject(
+                "http://RESTAURANTE/api/restaurantes/" + p.getIdRestauranteRef(),
+                Object.class
+            );
+        } catch (Exception e) {
+            throw new RuntimeException("El restaurante con id " + p.getIdRestauranteRef() + " no existe");
+        }
 
-    // Verifica categoría en ms-categorias (8089)
-    try {
-        restTemplate.getForObject(
-            "http://localhost:8089/api/categorias/" + p.getIdCategoriaRef(),
-            Object.class
-        );
-    } catch (Exception e) {
-        throw new RuntimeException("La categoría con id " + p.getIdCategoriaRef() + " no existe");
-    }
+        // Verifica categoría — usa nombre de Eureka
+        try {
+            restTemplate.getForObject(
+                "http://CATEGORIAS/api/categorias/" + p.getIdCategoriaRef(),
+                Object.class
+            );
+        } catch (Exception e) {
+            throw new RuntimeException("La categoría con id " + p.getIdCategoriaRef() + " no existe");
+        }
 
         Producto guardado = repository.save(p);
         return new ProductoDetalleDTO(
