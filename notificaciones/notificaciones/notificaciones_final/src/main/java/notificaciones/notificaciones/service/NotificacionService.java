@@ -21,7 +21,6 @@ public class NotificacionService {
     private final NotificacionRepository repository;
     private final RestTemplate restTemplate;
 
-    // Convierte entidad a ResponseDTO
     private NotificacionDetalleDTO mapearAResponse(Notificacion n) {
         return new NotificacionDetalleDTO(
                 n.getId(),
@@ -38,17 +37,22 @@ public class NotificacionService {
         );
     }
 
-    // Enviar notificacion generica
     public NotificacionDetalleDTO enviar(NotificacionListadoDTO dto) {
+        try {
+            // ANTES: se usaba localhost:8080 que solo funciona en la misma máquina
+            // restTemplate.getForObject("http://localhost:8080/api/v1/usuarios/" + dto.getUsuarioId(), Object.class);
+            
+            // DESPUÉS: se usa el nombre USUARIO registrado en Eureka
+            // Eureka resuelve automáticamente la IP y puerto real del microservicio
+            // Funciona en cualquier ambiente: local, Docker, Railway, etc.
+            restTemplate.getForObject(
+                "http://USUARIO/api/v1/usuarios/" + dto.getUsuarioId(),
+                Object.class
+            );
+        } catch (Exception e) {
+            throw new RuntimeException("El usuario con id " + dto.getUsuarioId() + " no existe");
+        }
 
-            try {
-        restTemplate.getForObject(
-            "http://localhost:8080/api/v1/usuarios/" + dto.getUsuarioId(),
-            Object.class
-        );
-    } catch (Exception e) {
-        throw new RuntimeException("El usuario con id " + dto.getUsuarioId() + " no existe");
-    }
         Notificacion n = new Notificacion();
         n.setUsuarioId(dto.getUsuarioId());
         n.setTipoDestinatario(dto.getTipoDestinatario());
@@ -60,8 +64,6 @@ public class NotificacionService {
         n.setRestauranteId(dto.getRestauranteId());
         return mapearAResponse(repository.save(n));
     }
-
-    // ── NOTIFICACIONES AL CLIENTE ─────────────────────────────────────────
 
     public NotificacionDetalleDTO notificarPedidoConfirmado(Integer usuarioId, Integer pedidoId) {
         NotificacionListadoDTO dto = new NotificacionListadoDTO(usuarioId, "CLIENTE", "PEDIDO_CONFIRMADO",
@@ -119,8 +121,6 @@ public class NotificacionService {
         return enviar(dto);
     }
 
-    // ── NOTIFICACIONES AL RESTAURANTE ────────────────────────────────────
-
     public NotificacionDetalleDTO notificarNuevoPedido(Integer restauranteId, Integer pedidoId) {
         NotificacionListadoDTO dto = new NotificacionListadoDTO(restauranteId, "RESTAURANTE", "NUEVO_PEDIDO",
                 "PUSH", "Nuevo pedido recibido",
@@ -141,8 +141,6 @@ public class NotificacionService {
                 "Un cliente dejo una nueva resenia para tu restaurante.", null, restauranteId);
         return enviar(dto);
     }
-
-    // ── NOTIFICACIONES AL REPARTIDOR ─────────────────────────────────────
 
     public NotificacionDetalleDTO notificarPedidoAsignadoRepartidor(Integer repartidorId, Integer pedidoId) {
         NotificacionListadoDTO dto = new NotificacionListadoDTO(repartidorId, "REPARTIDOR", "PEDIDO_ASIGNADO",
@@ -165,8 +163,6 @@ public class NotificacionService {
         return enviar(dto);
     }
 
-    // ── NOTIFICACIONES AL ADMIN ──────────────────────────────────────────
-
     public NotificacionDetalleDTO notificarPagoFallidoRepetido(Integer adminId, Integer usuarioId) {
         NotificacionListadoDTO dto = new NotificacionListadoDTO(adminId, "ADMIN", "PAGO_FALLIDO_REPETIDO",
                 "EMAIL", "Alerta: pagos fallidos repetidos",
@@ -180,8 +176,6 @@ public class NotificacionService {
                 "No hay repartidores disponibles en este momento. Revisa la plataforma.", null, null);
         return enviar(dto);
     }
-
-    // ── CONSULTAS ────────────────────────────────────────────────────────
 
     public List<NotificacionDetalleDTO> obtenerTodas() {
         return repository.findAll().stream()
