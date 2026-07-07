@@ -1,12 +1,14 @@
-# Click and Eat 🍔 — Arquitectura de Microservicios
+# Click and Eat  — Arquitectura de Microservicios
 
 ## Descripción
 Plataforma de pedidos de comida a domicilio desarrollada con arquitectura de microservicios usando Spring Boot, Spring Cloud y Docker.
 
 ## Integrantes del equipo
 - Felix Patino
-- [Nombre compañero 2]
-- [Nombre compañero 3]
+- Dylan riquelme
+- Benjamin Hernandez
+- Vicente Bravo
+
 
 ## Microservicios implementados
 
