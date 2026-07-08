@@ -3,8 +3,8 @@ package com.pedidos.pedidos.service;
 import com.pedidos.pedidos.dto.PedidoRequestDTO;
 import com.pedidos.pedidos.dto.PedidoResponseDTO;
 import com.pedidos.pedidos.dto.HojaDespachoDTO;
-import com.pedidos.pedidos.dto.RestauranteResponseDTO; // <-- CORREGIDO: Paquete propio
-import com.pedidos.pedidos.dto.UsuarioDetalleDTO;     // <-- CORREGIDO: Paquete propio
+import com.pedidos.pedidos.dto.RestauranteResponseDTO;
+import com.pedidos.pedidos.dto.UsuarioDetalleDTO;
 import com.pedidos.pedidos.model.Pedido;
 import com.pedidos.pedidos.repository.PedidoRepository;
 import lombok.RequiredArgsConstructor;
@@ -24,14 +24,14 @@ public class PedidoService {
 
     private PedidoResponseDTO mapearAResponse(Pedido p) {
         return new PedidoResponseDTO(
-            p.getId(), 
-            p.getUsuarioId(), 
+            p.getId(),
+            p.getUsuarioId(),
             p.getRestauranteId(),
-            p.getNombre(), 
-            p.getSku(), 
+            p.getNombre(),
+            p.getSku(),
             p.getDescripcion(),
-            p.getCantidad(), 
-            p.getPrecio(), 
+            p.getCantidad(),
+            p.getPrecio(),
             p.getEstado(),
             p.getFechaCreacion() != null ? p.getFechaCreacion().toString() : "Fecha pendiente"
         );
@@ -39,19 +39,21 @@ public class PedidoService {
 
     public Optional<HojaDespachoDTO> obtenerHojaDespacho(Integer pedidoId) {
         return repository.findById(pedidoId).map(pedido -> {
-            
+
             String nombreCliente = "Desconocido";
             String telefonoCliente = "No disponible";
             String direccionEntrega = "No disponible";
-            
+
             String nombreRestaurante = "Desconocido";
             String direccionRestaurante = "No disponible";
 
-            // 1. Consumir Datos del Usuario (Puerto 8080)
+            // 1. Consumir Datos del Usuario — usa nombre de Eureka
             try {
-                String urlUsuario = "http://localhost:8080/api/v1/usuarios/" + pedido.getUsuarioId();
+                // ANTES: http://localhost:8080/api/v1/usuarios/
+                // DESPUÉS: http://USUARIO — Eureka resuelve la IP automáticamente
+                String urlUsuario = "http://USUARIO/api/v1/usuarios/" + pedido.getUsuarioId();
                 UsuarioDetalleDTO usuario = restTemplate.getForObject(urlUsuario, UsuarioDetalleDTO.class);
-                
+
                 if (usuario != null) {
                     nombreCliente = usuario.getNombreCompleto();
                     telefonoCliente = usuario.getTelefono();
@@ -61,14 +63,16 @@ public class PedidoService {
                 nombreCliente = "Error al obtener datos del cliente";
             }
 
-            // 2. Consumir Datos del Restaurante (Puerto 8086)
+            // 2. Consumir Datos del Restaurante — usa nombre de Eureka
             try {
-                String urlRestaurante = "http://localhost:8086/api/restaurantes/" + pedido.getRestauranteId();
+                // ANTES: http://localhost:8086/api/restaurantes/
+                // DESPUÉS: http://RESTAURANTE — Eureka resuelve la IP automáticamente
+                String urlRestaurante = "http://RESTAURANTE/api/restaurantes/" + pedido.getRestauranteId();
                 RestauranteResponseDTO restaurante = restTemplate.getForObject(urlRestaurante, RestauranteResponseDTO.class);
-                
+
                 if (restaurante != null) {
-                    nombreRestaurante = restaurante.getNombre(); 
-                    direccionRestaurante = restaurante.getDireccion(); 
+                    nombreRestaurante = restaurante.getNombre();
+                    direccionRestaurante = restaurante.getDireccion();
                 }
             } catch (Exception e) {
                 nombreRestaurante = "Error al obtener datos del restaurante";
@@ -102,8 +106,9 @@ public class PedidoService {
 
     public PedidoResponseDTO guardar(PedidoRequestDTO dto) {
         try {
+            // ANTES: localhost:8080 → DESPUÉS: nombre de Eureka USUARIO
             restTemplate.getForObject(
-                "http://localhost:8080/api/v1/usuarios/" + dto.usuarioId(),
+                "http://USUARIO/api/v1/usuarios/" + dto.usuarioId(),
                 Object.class
             );
         } catch (Exception e) {
@@ -111,8 +116,9 @@ public class PedidoService {
         }
 
         try {
+            // ANTES: localhost:8086 → DESPUÉS: nombre de Eureka RESTAURANTE
             restTemplate.getForObject(
-                "http://localhost:8086/api/restaurantes/" + dto.restauranteId(),
+                "http://RESTAURANTE/api/restaurantes/" + dto.restauranteId(),
                 Object.class
             );
         } catch (Exception e) {
@@ -127,7 +133,7 @@ public class PedidoService {
         pedido.setDescripcion(dto.descripcion());
         pedido.setCantidad(dto.cantidad());
         pedido.setPrecio(dto.precio());
-        
+
         return mapearAResponse(repository.save(pedido));
     }
 
