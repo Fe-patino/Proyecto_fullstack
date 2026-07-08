@@ -25,7 +25,7 @@ public class RepartidorService {
         if(repartidor.getIdPedido() != null){
             try{
                 restTemplate.getForObject(
-                    "http://localhost:8083/api/pedidos/" + 
+                    "http://PEDIDOS/api/pedidos/" + 
                     repartidor.getIdPedido(),
                     Object.class
                     );
