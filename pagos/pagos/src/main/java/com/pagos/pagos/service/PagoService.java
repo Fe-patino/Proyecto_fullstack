@@ -51,7 +51,7 @@ public class PagoService {
         // Verifica que el usuario existe en ms-usuarios (puerto 8080)
         try {
             restTemplate.getForObject(
-                "http://localhost:8080/api/v1/usuarios/" + pago.getIdUsuario(),
+                "http://USUARIO/api/v1/usuarios/" + pago.getIdUsuario(),
                 Object.class
             );
         } catch (Exception e) {
@@ -61,7 +61,7 @@ public class PagoService {
         // Verifica que el pedido existe en ms-pedidos (puerto 8083)
         try {
             restTemplate.getForObject(
-                "http://localhost:8083/api/pedidos/" + pago.getIdPedido(),
+                "http://PEDIDOS/api/pedidos/" + pago.getIdPedido(),
                 Object.class
             );
         } catch (Exception e) {
