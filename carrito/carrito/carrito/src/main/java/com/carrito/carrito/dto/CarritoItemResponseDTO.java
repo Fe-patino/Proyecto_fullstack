@@ -1,5 +1,7 @@
 package com.carrito.carrito.dto;
 
+import java.time.LocalDateTime;
+
 public record CarritoItemResponseDTO(
     Integer id,
     Integer usuarioId,

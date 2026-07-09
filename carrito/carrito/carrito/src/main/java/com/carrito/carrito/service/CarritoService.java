@@ -32,26 +32,24 @@ public class CarritoService {
             item.getPrecioUnitario(),
             item.getSubtotal(),
             item.getEstado(),
-            item.getFechaAgregado() != null ? item.getFechaAgregado().toString() : "Fecha pendiente",
-            item.getFechaActualizacion() != null ? item.getFechaActualizacion().toString() : "Fecha pendiente"
+            item.getFechaAgregado(),
+            item.getFechaActualizacion()
         );
     }
 
     public CarritoItemResponseDTO agregarItem(CarritoItemRequestDTO dto) {
-        // Corrección: Usamos el nombre del servicio en Eureka en lugar de localhost:8080
         try {
             restTemplate.getForObject(
-                "http://ms-usuarios/api/v1/usuarios/" + dto.usuarioId(),
+                "http://USUARIO/api/v1/usuarios/" + dto.usuarioId(),
                 Object.class
             );
         } catch (Exception e) {
             throw new RuntimeException("El usuario con id " + dto.usuarioId() + " no existe o el servicio no está disponible");
         }
 
-        // Corrección: Usamos el nombre del servicio en Eureka en lugar de localhost:8086
         try {
             restTemplate.getForObject(
-                "http://ms-restaurantes/api/restaurantes/" + dto.restauranteId(),
+                "http://RESTAURANTE/api/restaurantes/" + dto.restauranteId(),
                 Object.class
             );
         } catch (Exception e) {
@@ -64,7 +62,6 @@ public class CarritoService {
         if (itemExistente.isPresent()) {
             CarritoItem item = itemExistente.get();
             item.setCantidad(item.getCantidad() + dto.cantidad());
-            // Eliminado setFechaActualizacion manual (lo maneja @PreUpdate de JPA)
             return mapearAResponse(repository.save(item));
         }
 
@@ -88,8 +85,7 @@ public class CarritoService {
                 .collect(Collectors.toList());
 
         Double total = repository.calcularTotalCarrito(usuarioId);
-        // Gracias al COALESCE en el repository, total nunca será null, pero mantenemos el fallback por seguridad.
-        if (total == null) total = 0.0; 
+        if (total == null) total = 0.0;
 
         return new CarritoResumenDTO(usuarioId, items, items.size(), total);
     }

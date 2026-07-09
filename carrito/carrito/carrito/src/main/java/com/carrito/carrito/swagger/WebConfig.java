@@ -1,4 +1,4 @@
-package com.carrito.carrito.config;
+package com.carrito.carrito.swagger;
 
 import org.springframework.cloud.client.loadbalancer.LoadBalanced;
 import org.springframework.context.annotation.Bean;
@@ -9,7 +9,7 @@ import org.springframework.web.client.RestTemplate;
 public class WebConfig {
 
     @Bean
-    @LoadBalanced // Permite usar los nombres de los microservicios registrados en Eureka en vez de localhost:puerto
+    @LoadBalanced
     public RestTemplate restTemplate() {
         return new RestTemplate();
     }
