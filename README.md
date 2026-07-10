@@ -70,6 +70,15 @@ Plataforma de pedidos de comida a domicilio desarrollada con arquitectura de mic
 2. Generar JARs: `mvn clean package -DskipTests` en cada microservicio
 3. Levantar todo: `docker-compose up --build`
 4. Acceder a Eureka: http://localhost:8761
+## Con Docker
+1. Tener Docker Desktop abierto
+2. Levantar todo: `docker-compose up --build`
+3. Acceder a Eureka: http://localhost:8761
+## Para detener Docker
+```bash
+docker-compose down
+
+
 
 ## Tecnologías utilizadas
 - Java 21
